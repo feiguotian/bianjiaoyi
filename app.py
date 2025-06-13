@@ -5,6 +5,7 @@ import streamlit as st
 import time
 from datetime import datetime
 import plotly.graph_objects as go
+import json
 
 # 设置 SQLite 数据库连接
 def create_db_connection():
@@ -153,6 +154,23 @@ def plot_candlestick_chart(data, peaks, troughs):
 
     st.plotly_chart(fig)
 
+# 手动波浪数据表格（起点、终点）
+def display_wave_table(waves_data):
+    df = pd.DataFrame(waves_data, columns=["浪编号", "起点", "终点"])
+    st.dataframe(df)
+
+# 保存和导入波浪数据
+def save_wave_data(waves_data, filename="waves_data.json"):
+    with open(filename, 'w') as f:
+        json.dump(waves_data, f)
+
+def load_wave_data(filename="waves_data.json"):
+    try:
+        with open(filename, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return []
+
 # Streamlit 界面展示
 def main():
     st.title("自动波浪理论与趋势分析")
@@ -161,6 +179,8 @@ def main():
     vs_currency = st.text_input("对比货币", "usd")  # 默认使用 USD
     days = st.number_input("获取过去的天数（2-90天小时线）", min_value=2, max_value=90, value=30)
     
+    waves_data = load_wave_data()  # 加载已保存的波浪数据
+
     if st.button("开始实时获取数据并分析"):
         ohlcv_data = get_coingecko_ohlcv(symbol=symbol, vs_currency=vs_currency, days=days)
         
@@ -187,7 +207,15 @@ def main():
             # 获取下一个波浪的起始和区间
             if wave_prediction:
                 st.write("波浪预测完成。")
+            
+            # 更新波浪表格
+            display_wave_table(waves_data)
 
+            # 导出数据按钮
+            if st.button("导出波浪数据"):
+                save_wave_data(waves_data)
+                st.success("波浪数据已保存。")
+        
 # 运行应用
 if __name__ == '__main__':
     create_table()
