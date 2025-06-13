@@ -10,7 +10,7 @@ import io
 
 # 设置 SQLite 数据库连接
 def create_db_connection():
-    conn = sqlite3.connect('market_data.db')
+    conn = sqlite3.connect('market_data.db', timeout=10)  # 设置超时避免锁定
     return conn
 
 # 创建表格（如果不存在）
@@ -169,7 +169,7 @@ def display_wave_table(waves_data):
 # 保存和导入波浪数据
 def save_wave_data(waves_data):
     # 将波浪数据转换为 CSV 格式
-    output = io.StringIO()
+    output = io.BytesIO()
     df = pd.DataFrame(waves_data, columns=["浪编号", "起点", "终点"])
     df.to_csv(output, index=False)
     output.seek(0)
