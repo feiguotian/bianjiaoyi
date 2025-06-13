@@ -27,6 +27,7 @@ def analyze_waves(data):
     peaks = []
     troughs = []
     
+    # 识别高低点
     for i in range(1, len(data) - 1):
         if data['price'][i] > data['price'][i-1] and data['price'][i] > data['price'][i+1]:
             peaks.append(i)
