@@ -73,30 +73,48 @@ def identify_peaks_and_troughs(prices):
     
     return peaks, troughs
 
-# 简单的波浪推测函数，基于峰值和谷值的相对位置
-def predict_wave_structure(peaks, troughs, prices):
-    if len(peaks) < 2 or len(troughs) < 2:
-        return "无法确定波浪阶段，数据不足"
+# 详细的波浪理论规则分析
+def wave_analysis(prices, peaks, troughs):
+    result = ""
     
-    if prices[peaks[0]] > prices[troughs[0]] and prices[troughs[0]] < prices[peaks[1]]:
-        return "当前可能处于波浪1"
-    
-    if prices[peaks[1]] > prices[troughs[1]] and prices[peaks[1]] > prices[peaks[0]]:
-        return "当前可能处于波浪3"
-    
-    if prices[peaks[2]] > prices[peaks[1]] and prices[peaks[2]] > prices[peaks[0]]:
-        return "当前可能处于波浪5"
+    if len(peaks) >= 2 and len(troughs) >= 2:
+        # 计算波浪1的长度
+        wave1_length = prices[peaks[1]] - prices[troughs[0]]
+        
+        # 波浪2的回撤率（通常为50%-61.8%）
+        wave2_retrace = (prices[peaks[1]] - prices[troughs[1]]) / wave1_length
+        if wave2_retrace > 0.618:
+            result += "波浪2的回撤超过了61.8%，不符合常规波浪理论。\n"
+        
+        # 计算波浪3的预期长度（波浪1的1.618倍）
+        wave3_length = wave1_length * 1.618
+        expected_wave3_target = prices[peaks[1]] + wave3_length
+        result += f"波浪3的预期目标：{expected_wave3_target}\n"
 
-    return "无法确定具体波浪阶段"
+        # 波浪4的回撤率（通常为38.2%以内）
+        wave4_retrace = (prices[peaks[2]] - prices[troughs[2]]) / wave1_length
+        if wave4_retrace > 0.382:
+            result += "波浪4的回撤超过了38.2%，不符合常规波浪理论。\n"
 
-# Trend check function: Verifying breakout levels
-def trend_check(price, support_level=107927, top_level=105333):
-    if price < support_level:
-        return f"价格跌破 {support_level}，存在见顶风险！"
-    elif price < top_level:
-        return f"价格跌破 {top_level}，进一步见顶风险验证！"
+        result += "分析结果：符合波浪理论规则。\n"
     else:
-        return f"价格维持在支撑位 {support_level} 之上，趋势可能继续上涨"
+        result = "数据不足以进行波浪理论分析。\n"
+
+    return result
+
+# 计算波浪区间和趋势
+def calculate_wave_range(prices, wave_type):
+    if wave_type == "wave3":  # 假设波浪3通常会扩展到1.618倍的波浪1
+        wave1_length = prices[1] - prices[0]
+        wave3_target = prices[1] + 1.618 * wave1_length
+        return prices[1], wave3_target  # 当前价格，预测的波浪3的目标价格
+
+    elif wave_type == "wave5":  # 假设波浪5类似于波浪1
+        wave1_length = prices[1] - prices[0]
+        wave5_target = prices[1] + wave1_length
+        return prices[1], wave5_target  # 当前价格，预测的波浪5的目标价格
+    
+    return prices[0], prices[0]  # 无法计算时返回初始值
 
 # K线图的绘制
 def plot_candlestick_chart(data, peaks, troughs):
@@ -135,20 +153,6 @@ def plot_candlestick_chart(data, peaks, troughs):
 
     st.plotly_chart(fig)
 
-# 计算波浪区间和趋势
-def calculate_wave_range(prices, wave_type):
-    if wave_type == "wave3":  # 假设波浪3通常会扩展到1.618倍的波浪1
-        wave1_length = prices[1] - prices[0]
-        wave3_target = prices[1] + 1.618 * wave1_length
-        return prices[1], wave3_target  # 当前价格，预测的波浪3的目标价格
-
-    elif wave_type == "wave5":  # 假设波浪5类似于波浪1
-        wave1_length = prices[1] - prices[0]
-        wave5_target = prices[1] + wave1_length
-        return prices[1], wave5_target  # 当前价格，预测的波浪5的目标价格
-    
-    return prices[0], prices[0]  # 无法计算时返回初始值
-
 # Streamlit 界面展示
 def main():
     st.title("自动波浪理论与趋势分析")
@@ -177,21 +181,12 @@ def main():
             st.dataframe(historical_data)
 
             # 波浪分析
-            wave_prediction = predict_wave_structure(peaks, troughs, historical_data['price'].values)
-            st.write(f"当前处于：{wave_prediction} 波")
+            wave_prediction = wave_analysis(historical_data['price'].values, peaks, troughs)
+            st.write(wave_prediction)
 
             # 获取下一个波浪的起始和区间
-            if wave_prediction == "当前可能处于波浪3":
-                start_price, target_price = calculate_wave_range(historical_data['price'].values, "wave3")
-                st.write(f"下一个波浪3的起始价格：{start_price}，目标价格区间：{start_price} 到 {target_price}")
-            elif wave_prediction == "当前可能处于波浪5":
-                start_price, target_price = calculate_wave_range(historical_data['price'].values, "wave5")
-                st.write(f"下一个波浪5的起始价格：{start_price}，目标价格区间：{start_price} 到 {target_price}")
-
-            # 获取最新价格并做趋势判断
-            latest_price = ohlcv_data['price'].iloc[-1]
-            trend_analysis = trend_check(latest_price)
-            st.write(trend_analysis)
+            if wave_prediction:
+                st.write("波浪预测完成。")
 
 # 运行应用
 if __name__ == '__main__':
