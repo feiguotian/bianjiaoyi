@@ -135,6 +135,20 @@ def plot_candlestick_chart(data, peaks, troughs):
 
     st.plotly_chart(fig)
 
+# 计算波浪区间和趋势
+def calculate_wave_range(prices, wave_type):
+    if wave_type == "wave3":  # 假设波浪3通常会扩展到1.618倍的波浪1
+        wave1_length = prices[1] - prices[0]
+        wave3_target = prices[1] + 1.618 * wave1_length
+        return prices[1], wave3_target  # 当前价格，预测的波浪3的目标价格
+
+    elif wave_type == "wave5":  # 假设波浪5类似于波浪1
+        wave1_length = prices[1] - prices[0]
+        wave5_target = prices[1] + wave1_length
+        return prices[1], wave5_target  # 当前价格，预测的波浪5的目标价格
+    
+    return prices[0], prices[0]  # 无法计算时返回初始值
+
 # Streamlit 界面展示
 def main():
     st.title("自动波浪理论与趋势分析")
@@ -165,6 +179,14 @@ def main():
             # 波浪分析
             wave_prediction = predict_wave_structure(peaks, troughs, historical_data['price'].values)
             st.write(f"当前处于：{wave_prediction} 波")
+
+            # 获取下一个波浪的起始和区间
+            if wave_prediction == "当前可能处于波浪3":
+                start_price, target_price = calculate_wave_range(historical_data['price'].values, "wave3")
+                st.write(f"下一个波浪3的起始价格：{start_price}，目标价格区间：{start_price} 到 {target_price}")
+            elif wave_prediction == "当前可能处于波浪5":
+                start_price, target_price = calculate_wave_range(historical_data['price'].values, "wave5")
+                st.write(f"下一个波浪5的起始价格：{start_price}，目标价格区间：{start_price} 到 {target_price}")
 
             # 获取最新价格并做趋势判断
             latest_price = ohlcv_data['price'].iloc[-1]
