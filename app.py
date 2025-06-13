@@ -99,7 +99,7 @@ def trend_check(price, support_level=107927, top_level=105333):
         return f"价格维持在支撑位 {support_level} 之上，趋势可能继续上涨"
 
 # K线图的绘制
-def plot_candlestick_chart(data):
+def plot_candlestick_chart(data, peaks, troughs):
     fig = go.Figure(data=[go.Candlestick(
         x=data['timestamp'],
         open=data['price'],
@@ -108,6 +108,23 @@ def plot_candlestick_chart(data):
         close=data['price'],
         name="K线图"
     )])
+
+    # 标记波浪的峰值和谷值
+    fig.add_trace(go.Scatter(
+        x=data['timestamp'].iloc[peaks], 
+        y=data['price'].iloc[peaks], 
+        mode='markers', 
+        name='峰值', 
+        marker=dict(color='red', size=10)
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=data['timestamp'].iloc[troughs], 
+        y=data['price'].iloc[troughs], 
+        mode='markers', 
+        name='谷值', 
+        marker=dict(color='blue', size=10)
+    ))
 
     fig.update_layout(
         title="比特币小时K线图",
@@ -133,7 +150,8 @@ def main():
             st.write(f"获取了 {len(ohlcv_data)} 条数据，数据完整性验证通过。")
 
             # 绘制 K 线图
-            plot_candlestick_chart(ohlcv_data)
+            peaks, troughs = identify_peaks_and_troughs(ohlcv_data['price'].values)
+            plot_candlestick_chart(ohlcv_data, peaks, troughs)
 
             # 将数据存储到数据库中
             for index, row in ohlcv_data.iterrows():
@@ -144,9 +162,6 @@ def main():
             st.write(f"历史数据：")
             st.dataframe(historical_data)
 
-            # 识别波浪的峰值和谷值
-            peaks, troughs = identify_peaks_and_troughs(historical_data['price'].values)
-
             # 波浪分析
             wave_prediction = predict_wave_structure(peaks, troughs, historical_data['price'].values)
             st.write(f"当前处于：{wave_prediction} 波")
@@ -155,27 +170,6 @@ def main():
             latest_price = ohlcv_data['price'].iloc[-1]
             trend_analysis = trend_check(latest_price)
             st.write(trend_analysis)
-
-            # 每小时更新数据
-            while True:
-                time.sleep(3600)  # 每小时获取一次数据
-                ohlcv_data = get_coingecko_ohlcv(symbol=symbol, vs_currency=vs_currency, days=days)
-                if ohlcv_data is not None:
-                    st.write(f"更新后的最新数据：")
-                    st.dataframe(ohlcv_data)
-
-                    # 绘制 K 线图
-                    plot_candlestick_chart(ohlcv_data)
-
-                    # 识别波浪
-                    peaks, troughs = identify_peaks_and_troughs(ohlcv_data['price'].values)
-                    wave_prediction = predict_wave_structure(peaks, troughs, ohlcv_data['price'].values)
-                    st.write(f"当前处于：{wave_prediction} 波")
-
-                    # 获取最新价格并做趋势判断
-                    latest_price = ohlcv_data['price'].iloc[-1]
-                    trend_analysis = trend_check(latest_price)
-                    st.write(trend_analysis)
 
 # 运行应用
 if __name__ == '__main__':
