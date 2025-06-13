@@ -15,7 +15,7 @@ def create_table():
     conn = create_db_connection()
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS market_data (
-                    timestamp DATETIME,
+                    timestamp TEXT,
                     price REAL
                 )''')
     conn.commit()
@@ -25,7 +25,11 @@ def create_table():
 def insert_data(timestamp, price):
     conn = create_db_connection()
     c = conn.cursor()
-    c.execute("INSERT INTO market_data (timestamp, price) VALUES (?, ?)", (timestamp, price))
+    
+    # 将 Timestamp 转换为字符串（ISO 8601 格式）
+    timestamp_str = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+    
+    c.execute("INSERT INTO market_data (timestamp, price) VALUES (?, ?)", (timestamp_str, price))
     conn.commit()
     conn.close()
 
