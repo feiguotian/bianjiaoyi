@@ -175,42 +175,53 @@ def load_wave_data(filename="waves_data.json"):
 def main():
     st.title("自动波浪理论与趋势分析")
 
-    symbol = st.text_input("交易对", "bitcoin")  # 选择加密货币符号，例如 'bitcoin' 或 'ethereum'
-    vs_currency = st.text_input("对比货币", "usd")  # 默认使用 USD
-    days = st.number_input("获取过去的天数（2-90天小时线）", min_value=2, max_value=90, value=30)
+    # 设置左右布局
+    col1, col2 = st.columns([1, 3])  # 左侧和右侧列
     
-    waves_data = load_wave_data()  # 加载已保存的波浪数据
+    # 左侧表格展示
+    with col1:
+        st.header("波浪数据表格")
+        waves_data = load_wave_data()  # 加载已保存的波浪数据
 
-    if st.button("开始实时获取数据并分析"):
-        ohlcv_data = get_coingecko_ohlcv(symbol=symbol, vs_currency=vs_currency, days=days)
+        # 默认波浪数据
+        if len(waves_data) == 0:
+            waves_data = [["1", 10394, 20203], ["2", 20203, 25000], ["3", 25000, 30000]]
         
-        if ohlcv_data is not None:
-            st.write(f"获取了 {len(ohlcv_data)} 条数据，数据完整性验证通过。")
+        display_wave_table(waves_data)  # 显示波浪数据表格
 
-            # 绘制 K 线图
-            peaks, troughs = identify_peaks_and_troughs(ohlcv_data['price'].values)
-            plot_candlestick_chart(ohlcv_data, peaks, troughs)
-
-            # 将数据存储到数据库中
-            for index, row in ohlcv_data.iterrows():
-                insert_data(row['timestamp'], row['price'])
-
-            # 获取历史数据
-            historical_data = get_historical_data()
-            st.write(f"历史数据：")
-            st.dataframe(historical_data)
-
-            # 波浪分析
-            wave_prediction = wave_analysis(historical_data['price'].values, peaks, troughs)
-            st.write(wave_prediction)
-
-            # 获取下一个波浪的起始和区间
-            if wave_prediction:
-                st.write("波浪预测完成。")
+    # 右侧数据分析和可视化
+    with col2:
+        symbol = st.text_input("交易对", "bitcoin")  # 选择加密货币符号，例如 'bitcoin' 或 'ethereum'
+        vs_currency = st.text_input("对比货币", "usd")  # 默认使用 USD
+        days = st.number_input("获取过去的天数（2-90天小时线）", min_value=2, max_value=90, value=30)
+        
+        if st.button("开始实时获取数据并分析"):
+            ohlcv_data = get_coingecko_ohlcv(symbol=symbol, vs_currency=vs_currency, days=days)
             
-            # 更新波浪表格
-            display_wave_table(waves_data)
+            if ohlcv_data is not None:
+                st.write(f"获取了 {len(ohlcv_data)} 条数据，数据完整性验证通过。")
 
+                # 绘制 K 线图
+                peaks, troughs = identify_peaks_and_troughs(ohlcv_data['price'].values)
+                plot_candlestick_chart(ohlcv_data, peaks, troughs)
+
+                # 将数据存储到数据库中
+                for index, row in ohlcv_data.iterrows():
+                    insert_data(row['timestamp'], row['price'])
+
+                # 获取历史数据
+                historical_data = get_historical_data()
+                st.write(f"历史数据：")
+                st.dataframe(historical_data)
+
+                # 波浪分析
+                wave_prediction = wave_analysis(historical_data['price'].values, peaks, troughs)
+                st.write(wave_prediction)
+
+                # 获取下一个波浪的起始和区间
+                if wave_prediction:
+                    st.write("波浪预测完成。")
+            
             # 导出数据按钮
             if st.button("导出波浪数据"):
                 save_wave_data(waves_data)
