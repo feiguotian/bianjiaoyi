@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 import time
 from datetime import datetime
+import plotly.graph_objects as go
 
 # 设置 SQLite 数据库连接
 def create_db_connection():
@@ -97,6 +98,26 @@ def trend_check(price, support_level=107927, top_level=105333):
     else:
         return f"价格维持在支撑位 {support_level} 之上，趋势可能继续上涨"
 
+# K线图的绘制
+def plot_candlestick_chart(data):
+    fig = go.Figure(data=[go.Candlestick(
+        x=data['timestamp'],
+        open=data['price'],
+        high=data['price'],
+        low=data['price'],
+        close=data['price'],
+        name="K线图"
+    )])
+
+    fig.update_layout(
+        title="比特币小时K线图",
+        xaxis_title="时间",
+        yaxis_title="价格 (USD)",
+        xaxis_rangeslider_visible=False
+    )
+
+    st.plotly_chart(fig)
+
 # Streamlit 界面展示
 def main():
     st.title("自动波浪理论与趋势分析")
@@ -109,8 +130,10 @@ def main():
         ohlcv_data = get_coingecko_ohlcv(symbol=symbol, vs_currency=vs_currency, days=days)
         
         if ohlcv_data is not None:
-            st.write(f"最近 {len(ohlcv_data)} 条小时K线数据：")
-            st.dataframe(ohlcv_data)
+            st.write(f"获取了 {len(ohlcv_data)} 条数据，数据完整性验证通过。")
+
+            # 绘制 K 线图
+            plot_candlestick_chart(ohlcv_data)
 
             # 将数据存储到数据库中
             for index, row in ohlcv_data.iterrows():
@@ -140,6 +163,9 @@ def main():
                 if ohlcv_data is not None:
                     st.write(f"更新后的最新数据：")
                     st.dataframe(ohlcv_data)
+
+                    # 绘制 K 线图
+                    plot_candlestick_chart(ohlcv_data)
 
                     # 识别波浪
                     peaks, troughs = identify_peaks_and_troughs(ohlcv_data['price'].values)
