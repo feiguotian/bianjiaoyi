@@ -6,6 +6,7 @@ import time
 from datetime import datetime
 import plotly.graph_objects as go
 import json
+import io
 
 # 设置 SQLite 数据库连接
 def create_db_connection():
@@ -104,7 +105,7 @@ def wave_analysis(prices, peaks, troughs):
         
         # 波浪2的回撤率（通常为50%-61.8%）
         wave2_retrace = (prices[peaks[1]] - prices[troughs[1]]) / wave1_length
-        if wave2_retrace > 0.618:
+        if wave2_retrace > 0.8:
             result += "波浪2的回撤超过了61.8%，不符合常规波浪理论。\n"
         
         # 计算波浪3的预期长度（波浪1的1.618倍）
@@ -166,9 +167,13 @@ def display_wave_table(waves_data):
     st.dataframe(df)
 
 # 保存和导入波浪数据
-def save_wave_data(waves_data, filename="waves_data.json"):
-    with open(filename, 'w') as f:
-        json.dump(waves_data, f)
+def save_wave_data(waves_data):
+    # 将波浪数据转换为 CSV 格式
+    output = io.StringIO()
+    df = pd.DataFrame(waves_data, columns=["浪编号", "起点", "终点"])
+    df.to_csv(output, index=False)
+    output.seek(0)
+    return output
 
 def load_wave_data(filename="waves_data.json"):
     try:
@@ -234,10 +239,14 @@ def main():
                 st.write("波浪预测完成。")
             
             # 导出数据按钮
-            if st.button("导出波浪数据"):
-                save_wave_data(waves_data)
-                st.success("波浪数据已保存。")
-        
+            csv_file = save_wave_data(waves_data)
+            st.download_button(
+                label="导出波浪数据",
+                data=csv_file,
+                file_name="waves_data.csv",
+                mime="text/csv"
+            )
+
 # 运行应用
 if __name__ == '__main__':
     create_table()
