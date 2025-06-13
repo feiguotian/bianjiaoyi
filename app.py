@@ -61,6 +61,26 @@ def get_coingecko_ohlcv(symbol='bitcoin', vs_currency='usd', days=30):
         st.error(f"请求失败，状态码：{response.status_code}, 错误详情：{response.text}")
         return None
 
+# 获取币安的历史数据
+def get_binance_ohlcv(symbol='BTCUSDT', interval='1h', limit=1000):
+    url = f'https://api.binance.com/api/v1/klines'
+    params = {
+        'symbol': symbol,
+        'interval': interval,
+        'limit': limit
+    }
+    
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        data = response.json()
+        ohlcv_data = pd.DataFrame(data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'quote_asset_volume', 'number_of_trades', 'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'])
+        ohlcv_data['timestamp'] = pd.to_datetime(ohlcv_data['timestamp'], unit='ms')
+        ohlcv_data['price'] = ohlcv_data['close'].astype(float)  # 以close价格作为价格数据
+        return ohlcv_data[['timestamp', 'price']]
+    else:
+        st.error(f"请求失败，状态码：{response.status_code}, 错误详情：{response.text}")
+        return None
+
 # 识别峰值和谷值的函数
 def identify_peaks_and_troughs(prices):
     peaks = []
@@ -102,20 +122,6 @@ def wave_analysis(prices, peaks, troughs):
         result = "数据不足以进行波浪理论分析。\n"
 
     return result
-
-# 计算波浪区间和趋势
-def calculate_wave_range(prices, wave_type):
-    if wave_type == "wave3":  # 假设波浪3通常会扩展到1.618倍的波浪1
-        wave1_length = prices[1] - prices[0]
-        wave3_target = prices[1] + 1.618 * wave1_length
-        return prices[1], wave3_target  # 当前价格，预测的波浪3的目标价格
-
-    elif wave_type == "wave5":  # 假设波浪5类似于波浪1
-        wave1_length = prices[1] - prices[0]
-        wave5_target = prices[1] + wave1_length
-        return prices[1], wave5_target  # 当前价格，预测的波浪5的目标价格
-    
-    return prices[0], prices[0]  # 无法计算时返回初始值
 
 # K线图的绘制
 def plot_candlestick_chart(data, peaks, troughs):
@@ -191,36 +197,41 @@ def main():
 
     # 右侧数据分析和可视化
     with col2:
-        symbol = st.text_input("交易对", "bitcoin")  # 选择加密货币符号，例如 'bitcoin' 或 'ethereum'
-        vs_currency = st.text_input("对比货币", "usd")  # 默认使用 USD
-        days = st.number_input("获取过去的天数（2-90天小时线）", min_value=2, max_value=90, value=30)
+        # 添加一个按钮来选择数据源
+        data_source = st.radio("选择数据源", ("CoinGecko", "Binance"), index=0)
+
+        symbol = 'bitcoin'  # 固定为比特币
+        vs_currency = 'usd'  # 对比美元
+        days = 30  # 默认取30天的数据
         
-        if st.button("开始实时获取数据并分析"):
+        if data_source == "CoinGecko":
             ohlcv_data = get_coingecko_ohlcv(symbol=symbol, vs_currency=vs_currency, days=days)
-            
-            if ohlcv_data is not None:
-                st.write(f"获取了 {len(ohlcv_data)} 条数据，数据完整性验证通过。")
+        else:  # 使用Binance的数据
+            ohlcv_data = get_binance_ohlcv(symbol="BTCUSDT", interval="1h", limit=1000)
+        
+        if ohlcv_data is not None:
+            st.write(f"获取了 {len(ohlcv_data)} 条数据，数据完整性验证通过。")
 
-                # 绘制 K 线图
-                peaks, troughs = identify_peaks_and_troughs(ohlcv_data['price'].values)
-                plot_candlestick_chart(ohlcv_data, peaks, troughs)
+            # 绘制 K 线图
+            peaks, troughs = identify_peaks_and_troughs(ohlcv_data['price'].values)
+            plot_candlestick_chart(ohlcv_data, peaks, troughs)
 
-                # 将数据存储到数据库中
-                for index, row in ohlcv_data.iterrows():
-                    insert_data(row['timestamp'], row['price'])
+            # 将数据存储到数据库中
+            for index, row in ohlcv_data.iterrows():
+                insert_data(row['timestamp'], row['price'])
 
-                # 获取历史数据
-                historical_data = get_historical_data()
-                st.write(f"历史数据：")
-                st.dataframe(historical_data)
+            # 获取历史数据
+            historical_data = get_historical_data()
+            st.write(f"历史数据：")
+            st.dataframe(historical_data)
 
-                # 波浪分析
-                wave_prediction = wave_analysis(historical_data['price'].values, peaks, troughs)
-                st.write(wave_prediction)
+            # 波浪分析
+            wave_prediction = wave_analysis(historical_data['price'].values, peaks, troughs)
+            st.write(wave_prediction)
 
-                # 获取下一个波浪的起始和区间
-                if wave_prediction:
-                    st.write("波浪预测完成。")
+            # 获取下一个波浪的起始和区间
+            if wave_prediction:
+                st.write("波浪预测完成。")
             
             # 导出数据按钮
             if st.button("导出波浪数据"):
