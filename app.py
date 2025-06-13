@@ -71,4 +71,5 @@ def main():
             st.write(f"当前处于：{wave} 波")
 
 # 运行应用
-if __na
+if __name__ == '__main__':
+    main()
