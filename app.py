@@ -3,10 +3,10 @@ import pandas as pd
 import requests
 import os
 import zipfile
-import csv
 from io import StringIO
 from datetime import datetime
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 # Function to download Binance Kline data
 def download_binance_data(symbol, interval, start_date, end_date):
@@ -55,6 +55,9 @@ def export_csv(df):
 # Display options for selecting data
 st.title("BTC/USDT Kline Data Download and Analysis")
 
+# Select data source
+data_source = st.selectbox("Select Data Source", ["Binance", "CoinGecko"])
+
 symbol = st.selectbox("Select symbol", ["BTCUSDT", "ETHUSDT"])
 interval = st.selectbox("Select interval", ["1m", "5m", "15m", "1h", "1d", "1w", "1M"])
 start_date = st.date_input("Start date", datetime(2023, 1, 1))
@@ -64,7 +67,12 @@ end_date = st.date_input("End date", datetime(2023, 12, 31))
 if st.button("Download Data"):
     st.write("Downloading data... Please wait.")
     
-    kline_data = download_binance_data(symbol, interval, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
+    if data_source == "Binance":
+        kline_data = download_binance_data(symbol, interval, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
+    else:
+        # Placeholder for CoinGecko or other data sources
+        st.write("CoinGecko data source is not yet implemented.")
+        kline_data = None
     
     if kline_data:
         df = process_kline_data(kline_data)
@@ -82,14 +90,23 @@ if st.button("Download Data"):
 
         # Plot the price data
         st.write("Price chart:")
-        plt.figure(figsize=(10, 6))
-        plt.plot(df['timestamp'], df['close'], label=f'{symbol} {interval} Closing Price')
-        plt.title(f'{symbol} Kline Chart ({interval})')
-        plt.xlabel('Date')
-        plt.ylabel('Price (USDT)')
-        plt.grid(True)
-        plt.xticks(rotation=45)
-        plt.tight_layout()
-        st.pyplot()
+        fig = go.Figure(data=[go.Candlestick(
+            x=df['timestamp'],
+            open=df['open'],
+            high=df['high'],
+            low=df['low'],
+            close=df['close'],
+            name=f'{symbol} {interval} Candlestick'
+        )])
+        
+        fig.update_layout(
+            title=f'{symbol} Kline Chart ({interval})',
+            xaxis_title='Date',
+            yaxis_title='Price (USDT)',
+            xaxis_rangeslider_visible=False
+        )
+        
+        st.plotly_chart(fig)
+
     else:
         st.error("Failed to download data. Please try again.")
