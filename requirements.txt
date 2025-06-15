@@ -3,3 +3,5 @@ requests
 pandas
 streamlit
 matplotlib
+python-binance
+pandas
