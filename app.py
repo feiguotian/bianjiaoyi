@@ -1,42 +1,35 @@
-from binance.client import Client
+import requests
 import pandas as pd
 
-# 配置你的API Key和API Secret
-api_key = "sj2GvXsJez9kXfoqC4KoJxorf0y7nGP5NCLfayMaqKMvJP1363YSjjRYqaMvb3EG"
-api_secret = "XDsT7vyTYgiMapGc2E4q3pXKP7DUy3CcapZhFaK0qIvD8w1hanQRmWQXlcoS1Qdq"  # 注意这里务必填写你的API Secret
+# 公共API获取K线数据，无需API Key和API Secret
+url = "https://api.binance.com/api/v3/klines"
+params = {
+    "symbol": "BTCUSDT",        # 交易对：BTC/USDT
+    "interval": "1h",           # K线周期：1小时
+    "limit": 1000,              # 获取最近1000条K线
+}
 
-# 创建币安客户端
-client = Client(api_key, api_secret)
+response = requests.get(url, params=params)
+data = response.json()
 
-# 定义获取历史K线数据的函数
-def fetch_historical_klines(symbol, interval, start_str, end_str):
-    klines = client.get_historical_klines(symbol, interval, start_str, end_str)
+# 将获取的数据转换为DataFrame
+df = pd.DataFrame(data, columns=[
+    "Open time", "Open", "High", "Low", "Close", "Volume",
+    "Close time", "Quote asset volume", "Number of trades",
+    "Taker buy base asset volume", "Taker buy quote asset volume", "Ignore"
+])
 
-    df = pd.DataFrame(klines, columns=[
-        "Open time", "Open", "High", "Low", "Close", "Volume",
-        "Close time", "Quote asset volume", "Number of trades",
-        "Taker buy base asset volume", "Taker buy quote asset volume", "Ignore"
-    ])
+# 将时间转换为可读格式
+df["Open time"] = pd.to_datetime(df["Open time"], unit="ms")
+df["Close time"] = pd.to_datetime(df["Close time"], unit="ms")
 
-    # 转换数据格式
-    df["Open time"] = pd.to_datetime(df["Open time"], unit="ms")
-    df["Close time"] = pd.to_datetime(df["Close time"], unit="ms")
-    
-    df = df[["Open time", "Open", "High", "Low", "Close", "Volume"]]
-    df[["Open", "High", "Low", "Close", "Volume"]] = df[["Open", "High", "Low", "Close", "Volume"]].astype(float)
+# 保留我们关心的字段
+df = df[["Open time", "Open", "High", "Low", "Close", "Volume"]]
 
-    return df
+# 转换为浮动数据类型
+df[["Open", "High", "Low", "Close", "Volume"]] = df[["Open", "High", "Low", "Close", "Volume"]].astype(float)
 
-# 配置参数
-symbol = "BTCUSDT"
-interval = Client.KLINE_INTERVAL_1HOUR
-start_str = "2022-08-01"
-end_str = "2025-06-14"
+# 将结果保存为CSV
+df.to_csv("BTCUSDT_1h_public_api.csv", index=False)
 
-# 获取数据
-btc_df = fetch_historical_klines(symbol, interval, start_str, end_str)
-
-# 将数据保存为CSV文件
-btc_df.to_csv("BTCUSDT_1h_2022-08_to_2025-06.csv", index=False)
-
-print("数据抓取成功，文件名为：BTCUSDT_1h_2022-08_to_2025-06.csv")
+print("公共API数据已保存为：BTCUSDT_1h_public_api.csv")
