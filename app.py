@@ -2,8 +2,8 @@ from binance.client import Client
 import pandas as pd
 
 # 配置你的API Key和API Secret
-api_key = "eVe6isYg7O0sSDJFuPYGoYW6JH2CIhi5lyjL7HVCh3xmTX86AeXvkH8RmRvWI3p8"
-api_secret = "e0AB8v4pgGPW3znpEU93aeWjrwxIwpqki8rU5VYKVcFyVOhtoEDjd4sZ0wN5VElJ"  # 注意这里务必填写你的API Secret
+api_key = "sj2GvXsJez9kXfoqC4KoJxorf0y7nGP5NCLfayMaqKMvJP1363YSjjRYqaMvb3EG"
+api_secret = "XDsT7vyTYgiMapGc2E4q3pXKP7DUy3CcapZhFaK0qIvD8w1hanQRmWQXlcoS1Qdq"  # 注意这里务必填写你的API Secret
 
 # 创建币安客户端
 client = Client(api_key, api_secret)
